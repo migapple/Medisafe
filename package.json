@@ -1,0 +1,17 @@
+{
+  "name": "medisafe",
+  "version": "1.0.0",
+  "description": "MediSafe – Gestion de pharmacie personnelle",
+  "scripts": {
+    "sync": "./node_modules/.bin/cap sync ios",
+    "open": "./node_modules/.bin/cap open ios",
+    "add-ios": "./node_modules/.bin/cap add ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/ios": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0"
+  }
+}

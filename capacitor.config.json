@@ -1,0 +1,13 @@
+{
+  "appId": "com.garlandat.medisafe",
+  "appName": "MediSafe",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "never",
+    "scrollEnabled": false,
+    "backgroundColor": "#f5f0eb"
+  }
+}
