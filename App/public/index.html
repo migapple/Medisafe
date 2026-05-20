@@ -1,0 +1,1772 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>MediSafe – Ma Pharmacie</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta http-equiv="Content-Security-Policy" content="default-src * 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'self' 'unsafe-inline' 'unsafe-eval'; connect-src *; img-src * 'self' data: blob:; media-src *; style-src * 'self' 'unsafe-inline';">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f0eb;
+    --surface: #ffffff;
+    --surface2: #faf7f4;
+    --accent: #c74e2a;
+    --accent-light: #f2e8e4;
+    --accent2: #2a6ec7;
+    --green: #2a8c5a;
+    --green-light: #e3f4ec;
+    --orange: #d4820a;
+    --orange-light: #fdf2e0;
+    --red: #c0392b;
+    --red-light: #fde8e6;
+    --text: #1a1410;
+    --text2: #6b5b4e;
+    --text3: #a0907e;
+    --border: #e8dfd6;
+    --shadow: 0 4px 24px rgba(0,0,0,0.08);
+    --shadow-lg: 0 12px 48px rgba(0,0,0,0.14);
+    --radius: 16px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── LAYOUT ── */
+  #app { display: flex; flex-direction: column; height: 100%; }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--accent);
+    padding: calc(var(--safe-top) + 18px) 20px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-title { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: white; letter-spacing: -0.3px; }
+  .header-subtitle { font-size: 0.75rem; color: rgba(255,255,255,0.7); margin-top: 1px; }
+  .header-btn {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(255,255,255,0.18);
+    border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; transition: background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .header-btn:active { background: rgba(255,255,255,0.35); }
+  .btn-add {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem; color: white; transition: background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-add:hover { background: rgba(255,255,255,0.3); }
+
+  /* ── ALERT BANNER ── */
+  .alert-banner {
+    background: linear-gradient(135deg, #c74e2a 0%, #a33a1a 100%);
+    padding: 14px 20px; display: none;
+    animation: slideDown 0.4s ease;
+  }
+  .alert-banner.show { display: block; }
+  .alert-banner-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.7); margin-bottom: 6px; }
+  .alert-items { display: flex; flex-wrap: wrap; gap: 6px; }
+  .alert-chip {
+    background: rgba(255,255,255,0.15); border-radius: 20px;
+    padding: 4px 10px; font-size: 0.78rem; color: white;
+  }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 12px; gap: 4px;
+    position: sticky; top: 72px; z-index: 90;
+  }
+  .tab {
+    flex: 1; padding: 14px 8px; text-align: center;
+    font-size: 0.82rem; font-weight: 500; color: var(--text3);
+    border: none; background: none; cursor: pointer;
+    border-bottom: 2px solid transparent; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-icon { font-size: 1.1rem; display: block; margin-bottom: 2px; }
+
+  /* ── MAIN CONTENT ── */
+  .content { flex: 1; overflow-y: auto; padding: 16px 16px calc(var(--safe-bottom) + 80px); }
+
+  /* ── SEARCH BAR ── */
+  .search-wrap { margin-bottom: 16px; position: relative; }
+  .search-input {
+    width: 100%; padding: 12px 16px 12px 42px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; font-size: 0.9rem; color: var(--text);
+    outline: none; transition: border-color 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 1rem; color: var(--text3); }
+
+  /* ── CATEGORY PILLS ── */
+  .cat-pills { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 4px; }
+  .cat-pills::-webkit-scrollbar { display: none; }
+  .cat-pill {
+    padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 500;
+    border: 1.5px solid var(--border); background: var(--surface);
+    color: var(--text2); cursor: pointer; white-space: nowrap;
+    transition: all 0.2s; -webkit-tap-highlight-color: transparent;
+  }
+  .cat-pill.active { background: var(--accent); border-color: var(--accent); color: white; }
+
+  /* ── MED CARDS ── */
+  .med-list { display: flex; flex-direction: column; gap: 10px; }
+  .med-card {
+    background: var(--surface); border-radius: var(--radius);
+    padding: 14px 16px; display: flex; align-items: center; gap: 14px;
+    box-shadow: var(--shadow); border-left: 4px solid var(--green);
+    transition: transform 0.15s;
+    cursor: pointer;
+  }
+  .med-card:active { transform: scale(0.98); }
+  .med-card.urgent { border-left-color: var(--orange); }
+  .med-card.expired { border-left-color: var(--red); opacity: 0.85; }
+  .med-card.low-stock { border-left-color: var(--accent2); }
+  .med-emoji { font-size: 2rem; flex-shrink: 0; width: 44px; text-align: center; }
+  .med-info { flex: 1; min-width: 0; }
+  .med-name { font-weight: 600; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .med-detail { font-size: 0.78rem; color: var(--text2); margin-top: 2px; }
+  .med-meta { text-align: right; flex-shrink: 0; }
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 0.72rem; font-weight: 600; margin-bottom: 4px;
+  }
+  .badge-ok { background: var(--green-light); color: var(--green); }
+  .badge-urgent { background: var(--orange-light); color: var(--orange); }
+  .badge-expired { background: var(--red-light); color: var(--red); }
+  .med-qty { font-size: 0.78rem; color: var(--text3); }
+
+  /* ── EMPTY STATE ── */
+  .empty-state { text-align: center; padding: 60px 20px; }
+  .empty-icon { font-size: 3.5rem; margin-bottom: 14px; }
+  .empty-title { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--text2); margin-bottom: 6px; }
+  .empty-sub { font-size: 0.85rem; color: var(--text3); }
+
+  /* ── STATS PAGE ── */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .stat-card {
+    background: var(--surface); border-radius: var(--radius);
+    padding: 16px; box-shadow: var(--shadow); text-align: center;
+  }
+  .stat-num { font-family: 'DM Serif Display', serif; font-size: 2.2rem; color: var(--accent); }
+  .stat-label { font-size: 0.78rem; color: var(--text3); margin-top: 2px; }
+  .section-title {
+    font-family: 'DM Serif Display', serif; font-size: 1.1rem;
+    color: var(--text); margin-bottom: 12px; margin-top: 4px;
+  }
+
+  /* ── FAB ── */
+  .fab {
+    position: fixed; bottom: calc(var(--safe-bottom) + 24px); right: 20px;
+    width: 58px; height: 58px; border-radius: 50%;
+    background: var(--accent); border: none; cursor: pointer;
+    box-shadow: var(--shadow-lg); display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; color: white; z-index: 200;
+    transition: transform 0.2s; -webkit-tap-highlight-color: transparent;
+  }
+  .fab:active { transform: scale(0.9); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 300;
+    display: none; align-items: flex-end; justify-content: center;
+    padding: 0 12px;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: 20px;
+    padding: 8px 0 calc(var(--safe-bottom) + 20px);
+    width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto; overflow-x: hidden;
+    margin-bottom: 12px;
+    animation: slideUp 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+  .modal-title {
+    font-family: 'DM Serif Display', serif; font-size: 1.4rem;
+    padding: 0 20px; margin-bottom: 20px;
+  }
+  .form-group { padding: 0 20px; margin-bottom: 16px; }
+  .form-label { font-size: 0.78rem; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block; }
+  .form-input, .form-select, .form-textarea {
+    width: 100%; padding: 12px 14px;
+    background: var(--surface2); border: 1.5px solid var(--border);
+    border-radius: 10px; font-size: 0.92rem; color: var(--text);
+    outline: none; transition: border-color 0.2s;
+    font-family: 'DM Sans', sans-serif;
+    -webkit-appearance: none;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); background: white; }
+  .form-row { display: flex; gap: 12px; padding: 0 20px; }
+  .form-row .form-group { flex: 1; padding: 0; min-width: 0; }
+  .scan-btn {
+    width: 100%; padding: 12px; margin-top: 8px;
+    background: var(--accent-light); color: var(--accent);
+    border: 1.5px dashed var(--accent); border-radius: 10px;
+    font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: background 0.2s;
+  }
+  .scan-btn:hover { background: var(--accent); color: white; }
+  .btn-row { display: flex; gap: 10px; padding: 0 20px; margin-top: 20px; }
+  .btn-primary {
+    flex: 1; padding: 14px; background: var(--accent); color: white;
+    border: none; border-radius: 12px; font-size: 0.95rem; font-weight: 600;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: opacity 0.2s;
+  }
+  .btn-primary:active { opacity: 0.85; }
+  .btn-secondary {
+    padding: 14px 20px; background: var(--surface2); color: var(--text2);
+    border: 1.5px solid var(--border); border-radius: 12px; font-size: 0.95rem;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+  }
+  .btn-danger {
+    flex: 1; padding: 14px; background: var(--red-light); color: var(--red);
+    border: none; border-radius: 12px; font-size: 0.95rem; font-weight: 600;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+  }
+
+  /* ── SCANNER ── */
+  .scanner-overlay {
+    position: fixed; inset: 0; background: #000; z-index: 400;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .scanner-overlay.open { display: flex; }
+  #scanner-video { width: 100%; max-width: 480px; }
+  .scanner-frame {
+    position: absolute; width: 240px; height: 180px;
+    border: 2px solid var(--accent); border-radius: 12px;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.6);
+  }
+  .scanner-line {
+    position: absolute; width: 220px; height: 2px;
+    background: var(--accent); top: 50%;
+    animation: scan 2s ease-in-out infinite;
+  }
+  @keyframes scan { 0%,100% { top: 30%; } 50% { top: 70%; } }
+  .scanner-label { color: white; margin-top: 28px; font-size: 0.9rem; text-align: center; opacity: 0.8; }
+  .scanner-result { color: var(--accent); margin-top: 10px; font-weight: 600; font-size: 1rem; }
+  .btn-cancel-scan {
+    margin-top: 30px; padding: 12px 28px;
+    background: rgba(255,255,255,0.15); color: white;
+    border: 1px solid rgba(255,255,255,0.3); border-radius: 12px;
+    font-size: 0.9rem; cursor: pointer; font-family: 'DM Sans', sans-serif;
+  }
+
+  /* ── DETAIL MODAL ── */
+  .detail-header { padding: 0 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
+  .detail-emoji { font-size: 3rem; }
+  .detail-name { font-family: 'DM Serif Display', serif; font-size: 1.4rem; }
+  .detail-dosage { font-size: 0.85rem; color: var(--text2); }
+  .detail-section { padding: 0 20px; margin-bottom: 20px; }
+  .detail-section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); margin-bottom: 10px; }
+  .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-key { font-size: 0.85rem; color: var(--text2); }
+  .detail-val { font-size: 0.85rem; font-weight: 600; }
+  .qty-controls { display: flex; align-items: center; gap: 12px; }
+  .qty-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 2px solid var(--border); background: var(--surface2);
+    font-size: 1.2rem; cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .qty-val { font-family: 'DM Serif Display', serif; font-size: 1.4rem; min-width: 30px; text-align: center; }
+
+  /* ── PAGES ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── SETTINGS MODAL ── */
+  .settings-section-label {
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text3); font-weight: 600;
+  }
+  .settings-card {
+    background: var(--surface); border-radius: var(--radius);
+    box-shadow: var(--shadow); overflow: hidden;
+  }
+  .settings-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; cursor: pointer;
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .settings-row:active { background: var(--surface2); }
+  .settings-icon { font-size: 1.3rem; width: 30px; text-align: center; flex-shrink: 0; }
+  .settings-info { flex: 1; min-width: 0; }
+  .settings-label { font-size: 0.9rem; font-weight: 500; }
+  .settings-sub { font-size: 0.75rem; color: var(--text3); margin-top: 2px; }
+  .settings-arrow { color: var(--text3); font-size: 1.3rem; flex-shrink: 0; }
+  .apropos-divider { height: 1px; background: var(--border); margin: 0 16px; }
+
+  /* ── APPS GRID ── */
+  .apps-section { padding: 0 20px 20px; }
+  .apps-section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); font-weight: 600; margin-bottom: 12px; }
+  .apps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .apps-grid-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .apps-grid-item img { width: 56px; height: 56px; border-radius: 13px; background: var(--surface2); }
+  .apps-grid-item span { font-size: 9px; color: var(--text2); margin-top: 4px; text-align: center; line-height: 1.2; max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .apps-badge { display: block; margin: 16px auto 0; width: 140px; }
+
+  /* toast */
+  .toast {
+    position: fixed; bottom: calc(var(--safe-bottom) + 90px); left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--text); color: white; padding: 10px 20px; border-radius: 20px;
+    font-size: 0.85rem; z-index: 500; opacity: 0; transition: all 0.3s;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* lookup indicator */
+  .lookup-spinner {
+    display: none; align-items: center; gap: 8px; margin-top: 8px;
+    padding: 8px 12px; background: var(--accent-light); border-radius: 8px;
+    font-size: 0.8rem; color: var(--accent);
+  }
+  .lookup-spinner.show { display: flex; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div style="flex:1">
+      <div class="header-title">💊 MediSafe</div>
+      <div class="header-subtitle" id="header-sub" data-i18n="subtitle">Ma pharmacie personnelle</div>
+    </div>
+    <button class="header-btn" id="btn-lang" onclick="toggleLang()" title="Language">🇬🇧</button>
+    <button class="header-btn" onclick="openSettings()" title="Paramètres">⚙️</button>
+    <input type="file" id="import-input" accept=".csv" style="display:none" onchange="importCSV(event)">
+  </div>
+
+  <!-- ALERT BANNER -->
+  <div class="alert-banner" id="alert-banner">
+    <div class="alert-banner-title">⚠️ Alertes</div>
+    <div class="alert-items" id="alert-items"></div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('medicaments')" id="tab-medicaments">
+      <span class="tab-icon">💊</span><span data-i18n="tab_meds">Médicaments</span>
+    </button>
+    <button class="tab" onclick="showTab('scanner')" id="tab-scanner">
+      <span class="tab-icon">📷</span><span data-i18n="tab_scanner">Scanner</span>
+    </button>
+    <button class="tab" onclick="showTab('stats')" id="tab-stats">
+      <span class="tab-icon">📊</span><span data-i18n="tab_stats">Statistiques</span>
+    </button>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- PAGE MÉDICAMENTS -->
+    <div class="page active" id="page-medicaments">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" type="text" placeholder="Rechercher un médicament…" data-i18n-placeholder="search_placeholder" oninput="renderMeds()" id="search-input">
+      </div>
+      <div class="cat-pills" id="cat-pills"></div>
+      <div class="med-list" id="med-list"></div>
+    </div>
+
+    <!-- PAGE SCANNER INFO -->
+    <div class="page" id="page-scanner">
+      <div class="empty-state">
+        <div class="empty-icon">📷</div>
+        <div class="empty-title" data-i18n="scanner_title">Scanner un code-barres</div>
+        <div class="empty-sub" style="margin-bottom:24px;"><span data-i18n="scanner_sub">Scannez le code-barres ou QR code d'un médicament pour l'ajouter rapidement à votre pharmacie.</span></div>
+        <button class="btn-primary" style="max-width:260px;margin:0 auto;display:block" onclick="startScanner()">
+          📷 <span data-i18n="scanner_start">Démarrer le scanner</span>
+        </button>
+        <div style="margin-top:20px;padding:16px;background:var(--surface);border-radius:var(--radius);text-align:left">
+          <div style="font-weight:600;margin-bottom:8px;font-size:0.9rem" data-i18n="scanner_codes">📋 Codes supportés :</div>
+          <div style="font-size:0.82rem;color:var(--text2);line-height:1.7">
+            • Code CIP (médicaments français)<br>
+            • Code EAN-13 / EAN-8<br>
+            • DataMatrix 2D (sérialisation EU)<br>
+            • QR Code standard
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE STATISTIQUES -->
+    <div class="page" id="page-stats">
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="section-title" data-i18n="stats_expiring_title">⚠️ Expirent bientôt</div>
+      <div class="med-list" id="stats-expiring"></div>
+      <div style="height:16px"></div>
+      <div class="section-title" data-i18n="stats_lowstock_title">📦 Stock faible</div>
+      <div class="med-list" id="stats-lowstock"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" onclick="openAddModal()" title="Ajouter un médicament">＋</button>
+
+<!-- MODAL ADD/EDIT -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">Ajouter un médicament</div>
+
+    <div class="form-group">
+      <label class="form-label" data-i18n="form_name">Nom du médicament *</label>
+      <input class="form-input" type="text" id="f-name" placeholder="ex: Doliprane 500mg">
+      <button class="scan-btn" onclick="startScannerForField('name')" data-i18n="scan_btn">📷 Scanner le code-barres</button>
+      <div class="lookup-spinner" id="lookup-spinner">⏳ <span data-i18n="lookup_searching">Recherche dans la base médicaments…</span></div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" data-i18n="form_barcode">Code-barres / CIP</label>
+      <input class="form-input" type="text" id="f-barcode" placeholder="ex: 3400936093138">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Dosage</label>
+        <input class="form-input" type="text" id="f-dosage" placeholder="ex: 500mg">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Catégorie</label>
+        <select class="form-select" id="f-category">
+          <option value="Analgésique">Analgésique</option>
+          <option value="Antibiotique">Antibiotique</option>
+          <option value="Anti-inflammatoire">Anti-inflammatoire</option>
+          <option value="Antihistaminique">Antihistaminique</option>
+          <option value="Cardiovasculaire">Cardiovasculaire</option>
+          <option value="Digestif">Digestif</option>
+          <option value="Dermatologie">Dermatologie</option>
+          <option value="Ophtalmologie">Ophtalmologie</option>
+          <option value="ORL">ORL</option>
+          <option value="Vitamines">Vitamines</option>
+          <option value="Autre">Autre</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" data-i18n="form_expiry">Date péremption *</label>
+        <input class="form-input" type="month" id="f-expiry">
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="form_qty">Quantité</label>
+        <input class="form-input" type="number" id="f-qty" placeholder="1" min="0">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" data-i18n="form_unit">Unité</label>
+        <select class="form-select" id="f-unit">
+          <option>comprimés</option>
+          <option>gélules</option>
+          <option>ampoules</option>
+          <option>sachets</option>
+          <option>ml</option>
+          <option>doses</option>
+          <option>boîtes</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="form_minstock">Stock min.</label>
+        <input class="form-input" type="number" id="f-minqty" placeholder="2" min="0">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" data-i18n="form_notes">Notes</label>
+      <input class="form-input" type="text" id="f-notes" placeholder="ex: Prendre avec de l'eau">
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="closeModal()" data-i18n="cancel">Annuler</button>
+      <button class="btn-primary" id="btn-save" onclick="saveMed()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETAIL -->
+<div class="modal-overlay" id="detail-overlay" onclick="closeDetail(event)">
+  <div class="modal" id="detail-modal">
+    <div class="modal-handle"></div>
+    <div class="detail-header">
+      <div class="detail-emoji" id="d-emoji"></div>
+      <div>
+        <div class="detail-name" id="d-name"></div>
+        <div class="detail-dosage" id="d-dosage"></div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title" data-i18n="detail_info">Informations</div>
+      <div class="detail-row"><span class="detail-key" data-i18n="detail_category">Catégorie</span><span class="detail-val" id="d-cat"></span></div>
+      <div class="detail-row"><span class="detail-key" data-i18n="detail_barcode">Code-barres</span><span class="detail-val" id="d-barcode"></span></div>
+      <div class="detail-row"><span class="detail-key" data-i18n="detail_expiry">Péremption</span><span class="detail-val" id="d-expiry"></span></div>
+      <div class="detail-row"><span class="detail-key" data-i18n="detail_notes">Notes</span><span class="detail-val" id="d-notes"></span></div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title" data-i18n="detail_qty_title">Quantité restante</div>
+      <div style="display:flex;align-items:center;gap:12px;padding:8px 0">
+        <button class="qty-btn" onclick="adjustQty(-1)">−</button>
+        <span class="qty-val" id="d-qty">0</span>
+        <span style="font-size:0.85rem;color:var(--text2)" id="d-unit">comprimés</span>
+        <button class="qty-btn" onclick="adjustQty(1)">＋</button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-danger" onclick="deleteMed()" data-i18n="delete_btn">🗑 Supprimer</button>
+      <button class="btn-primary" onclick="editMed()" data-i18n="edit_btn">✏️ Modifier</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCANNER OVERLAY -->
+<div class="scanner-overlay" id="scanner-overlay">
+  <video id="scanner-video" autoplay playsinline></video>
+  <div class="scanner-frame">
+    <div class="scanner-line"></div>
+  </div>
+  <div class="scanner-label" id="scanner-label">Pointez vers le code-barres ou QR code</div>
+  <div class="scanner-result" id="scanner-result"></div>
+  <button class="btn-cancel-scan" onclick="stopScanner()">✕ Annuler</button>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── TRANSLATIONS ──────────────────────────────────────────────────────────
+var TRANSLATIONS = {
+  fr: {
+    subtitle: 'Ma pharmacie personnelle',
+    tab_meds: 'Médicaments',
+    tab_scanner: 'Scanner',
+    tab_stats: 'Statistiques',
+    search_placeholder: 'Rechercher un médicament…',
+    scanner_title: 'Scanner un code-barres',
+    scanner_sub: 'Scannez le code-barres ou QR code d\'un médicament pour l\'ajouter rapidement.',
+    scanner_start: '📷 Démarrer le scanner',
+    scanner_codes: '📋 Codes supportés :',
+    scanner_hint: 'Pointez vers le code-barres ou QR code',
+    form_name: 'Nom du médicament *',
+    form_barcode: 'Code-barres / CIP',
+    form_dosage: 'Dosage',
+    form_category: 'Catégorie',
+    form_expiry: 'Date péremption *',
+    form_qty: 'Quantité',
+    form_unit: 'Unité',
+    form_minstock: 'Stock min.',
+    form_notes: 'Notes',
+    scan_btn: '📷 Scanner le code-barres',
+    cancel: 'Annuler',
+    save: '💾 Enregistrer',
+    add_title: 'Ajouter un médicament',
+    edit_title: 'Modifier',
+    settings_title: '⚙️ Paramètres',
+    export_label: 'Exporter en CSV',
+    export_sub: 'Partager ou sauvegarder vos médicaments',
+    import_label: 'Importer un CSV',
+    import_sub: 'Restaurer une sauvegarde existante',
+    clear_label: 'Effacer toutes les données',
+    clear_sub: 'Remet l\'application à zéro',
+    about_private: '100% privé',
+    about_private_sub: 'Données stockées uniquement sur votre appareil',
+    about_offline: 'Fonctionne hors ligne',
+    about_offline_sub: 'Aucune connexion requise',
+    about_codes: 'Codes supportés',
+    about_codes_sub: 'DataMatrix GS1 · QR ANSM/VIDAL · EAN-13',
+    section_export: 'Import / Export',
+    section_data: 'Données',
+    section_about: 'À propos',
+    section_apps: '📱 Nos autres apps',
+    stats_total: 'Total',
+    stats_expired: 'Périmés',
+    stats_expiring: 'Expirent bientôt',
+    stats_lowstock: 'Stock faible',
+    stats_expiring_title: '⚠️ Expirent bientôt',
+    stats_lowstock_title: '📦 Stock faible',
+    empty_title: 'Pharmacie vide',
+    empty_sub: 'Appuyez sur ＋ pour ajouter votre premier médicament',
+    no_results: 'Aucun résultat',
+    no_results_sub: 'Essayez un autre mot-clé',
+    badge_expired: 'Périmé',
+    alert_expired: 'périmé',
+    alert_expiring: 'expire bientôt',
+    alert_expiring_pl: 'expirent bientôt',
+    alert_lowstock: 'stock faible',
+    qty_remaining: 'restant',
+    qty_remaining_pl: 'restants',
+    qty_none: 'Qté non renseignée',
+    delete_confirm: 'Supprimer ce médicament ?',
+    deleted_toast: '🗑 Médicament supprimé',
+    added_toast: '✅ Médicament ajouté',
+    modified_toast: '✅ Médicament modifié',
+    name_required: '⚠️ Le nom est obligatoire',
+    expiry_required: '⚠️ La date de péremption est obligatoire',
+    clear_confirm: 'Effacer TOUS les médicaments ? Cette action est irréversible.',
+    cleared_toast: '🗑 Données effacées',
+    import_confirm: 'Importer {n} médicament(s) ? Les données actuelles seront remplacées.',
+    import_success: '✅ {n} médicament(s) importés',
+    import_error: '⚠️ Erreur de lecture du fichier',
+    import_empty: '⚠️ Aucune donnée trouvée',
+    source_label: 'Source : ',
+    lot_label: 'Lot : ',
+    detail_info: 'Informations',
+    detail_category: 'Catégorie',
+    detail_barcode: 'Code-barres',
+    detail_expiry: 'Péremption',
+    detail_notes: 'Notes',
+    detail_qty_title: 'Quantité restante',
+    delete_btn: '🗑 Supprimer',
+    edit_btn: '✏️ Modifier',
+    no_expiry_soon: 'Aucun médicament n\'expire dans les 90 prochains jours 🎉',
+    all_stock_ok: 'Tous les stocks sont suffisants ✅',
+    stock_low_badge: 'Stock bas',
+    by_author: '© 2026 Michel Garlandat',
+    version: 'Version 1.3',
+    cam_unavailable: '⚠️ Scanner non disponible hors ligne',
+    cam_denied: '⚠️ Impossible d\'accéder à la caméra',
+    identified: '✅ Médicament identifié : ',
+    date_filled: ' · Date auto-remplie',
+    date_auto: ' · Date : ',
+    enter_name: ' – Entrez le nom',
+    cip_label: 'CIP : ',
+    expiry_label: 'Expiry auto-remplie',
+    lookup_searching: 'Recherche dans la base médicaments…',
+    lookup_found: '✅ Trouvé : ',
+    lookup_notfound: '📋 Code scanné – entrez le nom manuellement',
+    categories: {
+      'Analgésique': 'Analgésique', 'Antibiotique': 'Antibiotique',
+      'Anti-inflammatoire': 'Anti-inflammatoire', 'Antihistaminique': 'Antihistaminique',
+      'Cardiovasculaire': 'Cardiovasculaire', 'Digestif': 'Digestif',
+      'Dermatologie': 'Dermatologie', 'Ophtalmologie': 'Ophtalmologie',
+      'ORL': 'ORL', 'Vitamines': 'Vitamines', 'Autre': 'Autre'
+    },
+    units: ['comprimés','gélules','ampoules','sachets','ml','doses','boîtes']
+  },
+  en: {
+    subtitle: 'My personal pharmacy',
+    tab_meds: 'Medicines',
+    tab_scanner: 'Scanner',
+    tab_stats: 'Statistics',
+    search_placeholder: 'Search a medicine…',
+    scanner_title: 'Scan a barcode',
+    scanner_sub: 'Scan the barcode or QR code of a medicine to add it quickly.',
+    scanner_start: '📷 Start scanner',
+    scanner_codes: '📋 Supported codes:',
+    scanner_hint: 'Point at the barcode or QR code',
+    form_name: 'Medicine name *',
+    form_barcode: 'Barcode / CIP',
+    form_dosage: 'Dosage',
+    form_category: 'Category',
+    form_expiry: 'Expiry date *',
+    form_qty: 'Quantity',
+    form_unit: 'Unit',
+    form_minstock: 'Min. stock',
+    form_notes: 'Notes',
+    scan_btn: '📷 Scan barcode',
+    cancel: 'Cancel',
+    save: '💾 Save',
+    add_title: 'Add a medicine',
+    edit_title: 'Edit',
+    settings_title: '⚙️ Settings',
+    export_label: 'Export as CSV',
+    export_sub: 'Share or back up your medicines',
+    import_label: 'Import a CSV',
+    import_sub: 'Restore an existing backup',
+    clear_label: 'Clear all data',
+    clear_sub: 'Reset the application',
+    about_private: '100% private',
+    about_private_sub: 'All data stored on your device only',
+    about_offline: 'Works offline',
+    about_offline_sub: 'No internet connection needed',
+    about_codes: 'Supported codes',
+    about_codes_sub: 'GS1 DataMatrix · QR ANSM/VIDAL · EAN-13',
+    section_export: 'Import / Export',
+    section_data: 'Data',
+    section_about: 'About',
+    section_apps: '📱 Our other apps',
+    stats_total: 'Total',
+    stats_expired: 'Expired',
+    stats_expiring: 'Expiring soon',
+    stats_lowstock: 'Low stock',
+    stats_expiring_title: '⚠️ Expiring soon',
+    stats_lowstock_title: '📦 Low stock',
+    empty_title: 'Empty pharmacy',
+    empty_sub: 'Tap ＋ to add your first medicine',
+    no_results: 'No results',
+    no_results_sub: 'Try a different keyword',
+    badge_expired: 'Expired',
+    alert_expired: 'expired',
+    alert_expiring: 'expiring soon',
+    alert_expiring_pl: 'expiring soon',
+    alert_lowstock: 'low stock',
+    qty_remaining: 'remaining',
+    qty_remaining_pl: 'remaining',
+    qty_none: 'Qty not set',
+    delete_confirm: 'Delete this medicine?',
+    deleted_toast: '🗑 Medicine deleted',
+    added_toast: '✅ Medicine added',
+    modified_toast: '✅ Medicine updated',
+    name_required: '⚠️ Name is required',
+    expiry_required: '⚠️ Expiry date is required',
+    clear_confirm: 'Clear ALL medicines? This cannot be undone.',
+    cleared_toast: '🗑 Data cleared',
+    import_confirm: 'Import {n} medicine(s)? Current data will be replaced.',
+    import_success: '✅ {n} medicine(s) imported',
+    import_error: '⚠️ Error reading file',
+    import_empty: '⚠️ No data found',
+    source_label: 'Source: ',
+    lot_label: 'Lot: ',
+    detail_info: 'Information',
+    detail_category: 'Category',
+    detail_barcode: 'Barcode',
+    detail_expiry: 'Expiry',
+    detail_notes: 'Notes',
+    detail_qty_title: 'Remaining quantity',
+    delete_btn: '🗑 Delete',
+    edit_btn: '✏️ Edit',
+    no_expiry_soon: 'No medicine expires in the next 90 days 🎉',
+    all_stock_ok: 'All stocks are sufficient ✅',
+    stock_low_badge: 'Low stock',
+    by_author: '© 2026 Michel Garlandat',
+    version: 'Version 1.3',
+    cam_unavailable: '⚠️ Scanner not available offline',
+    cam_denied: '⚠️ Cannot access camera',
+    identified: '✅ Medicine identified: ',
+    date_filled: ' · Date auto-filled',
+    date_auto: ' · Expiry: ',
+    enter_name: ' – Enter name',
+    cip_label: 'CIP: ',
+    expiry_label: 'Expiry auto-filled',
+    lookup_searching: 'Searching medicine database…',
+    lookup_found: '✅ Found: ',
+    lookup_notfound: '📋 Code scanned – enter name manually',
+    categories: {
+      'Analgésique': 'Analgesic', 'Antibiotique': 'Antibiotic',
+      'Anti-inflammatoire': 'Anti-inflammatory', 'Antihistaminique': 'Antihistamine',
+      'Cardiovasculaire': 'Cardiovascular', 'Digestif': 'Digestive',
+      'Dermatologie': 'Dermatology', 'Ophtalmologie': 'Ophthalmology',
+      'ORL': 'ENT', 'Vitamines': 'Vitamins', 'Autre': 'Other'
+    },
+    units: ['tablets','capsules','ampoules','sachets','ml','doses','boxes']
+  },
+  pt: {
+    subtitle: 'Minha farmácia pessoal',
+    tab_meds: 'Medicamentos',
+    tab_scanner: 'Scanner',
+    tab_stats: 'Estatísticas',
+    search_placeholder: 'Buscar medicamento…',
+    scanner_title: 'Escanear código de barras',
+    scanner_sub: 'Escaneie o código de barras ou QR code do medicamento para adicioná-lo rapidamente.',
+    scanner_start: '📷 Iniciar scanner',
+    scanner_codes: '📋 Códigos suportados:',
+    scanner_hint: 'Aponte para o código de barras ou QR code',
+    form_name: 'Nome do medicamento *',
+    form_barcode: 'Código de barras / EAN',
+    form_dosage: 'Dosagem',
+    form_category: 'Categoria',
+    form_expiry: 'Data de validade *',
+    form_qty: 'Quantidade',
+    form_unit: 'Unidade',
+    form_minstock: 'Estoque mín.',
+    form_notes: 'Observações',
+    scan_btn: '📷 Escanear código de barras',
+    cancel: 'Cancelar',
+    save: '💾 Salvar',
+    add_title: 'Adicionar medicamento',
+    edit_title: 'Editar',
+    settings_title: '⚙️ Configurações',
+    export_label: 'Exportar como CSV',
+    export_sub: 'Compartilhar ou fazer backup dos seus medicamentos',
+    import_label: 'Importar um CSV',
+    import_sub: 'Restaurar um backup existente',
+    clear_label: 'Apagar todos os dados',
+    clear_sub: 'Redefinir o aplicativo',
+    about_private: '100% privado',
+    about_private_sub: 'Todos os dados armazenados somente no seu dispositivo',
+    about_offline: 'Funciona offline',
+    about_offline_sub: 'Nenhuma conexão necessária',
+    about_codes: 'Códigos suportados',
+    about_codes_sub: 'GS1 DataMatrix · EAN-13 · QR Code',
+    section_export: 'Importar / Exportar',
+    section_data: 'Dados',
+    section_about: 'Sobre',
+    section_apps: '📱 Nossos outros apps',
+    stats_total: 'Total',
+    stats_expired: 'Vencidos',
+    stats_expiring: 'Vencem em breve',
+    stats_lowstock: 'Estoque baixo',
+    stats_expiring_title: '⚠️ Vencem em breve',
+    stats_lowstock_title: '📦 Estoque baixo',
+    empty_title: 'Farmácia vazia',
+    empty_sub: 'Toque em ＋ para adicionar seu primeiro medicamento',
+    no_results: 'Nenhum resultado',
+    no_results_sub: 'Tente outra palavra-chave',
+    badge_expired: 'Vencido',
+    alert_expired: 'vencido',
+    alert_expiring: 'vence em breve',
+    alert_expiring_pl: 'vencem em breve',
+    alert_lowstock: 'estoque baixo',
+    qty_remaining: 'restante',
+    qty_remaining_pl: 'restantes',
+    qty_none: 'Qtd. não informada',
+    delete_confirm: 'Excluir este medicamento?',
+    deleted_toast: '🗑 Medicamento excluído',
+    added_toast: '✅ Medicamento adicionado',
+    modified_toast: '✅ Medicamento atualizado',
+    name_required: '⚠️ O nome é obrigatório',
+    expiry_required: '⚠️ A data de validade é obrigatória',
+    clear_confirm: 'Apagar TODOS os medicamentos? Esta ação é irreversível.',
+    cleared_toast: '🗑 Dados apagados',
+    import_confirm: 'Importar {n} medicamento(s)? Os dados atuais serão substituídos.',
+    import_success: '✅ {n} medicamento(s) importados',
+    import_error: '⚠️ Erro ao ler o arquivo',
+    import_empty: '⚠️ Nenhum dado encontrado',
+    source_label: 'Fonte: ',
+    lot_label: 'Lote: ',
+    detail_info: 'Informações',
+    detail_category: 'Categoria',
+    detail_barcode: 'Código de barras',
+    detail_expiry: 'Validade',
+    detail_notes: 'Observações',
+    detail_qty_title: 'Quantidade restante',
+    delete_btn: '🗑 Excluir',
+    edit_btn: '✏️ Editar',
+    no_expiry_soon: 'Nenhum medicamento vence nos próximos 90 dias 🎉',
+    all_stock_ok: 'Todos os estoques estão suficientes ✅',
+    stock_low_badge: 'Estoque baixo',
+    by_author: '© 2026 Michel Garlandat',
+    version: 'Versão 1.3',
+    cam_unavailable: '⚠️ Scanner não disponível offline',
+    cam_denied: '⚠️ Não foi possível acessar a câmera',
+    identified: '✅ Medicamento identificado: ',
+    date_filled: ' · Data preenchida automaticamente',
+    date_auto: ' · Validade: ',
+    enter_name: ' – Digite o nome',
+    cip_label: 'EAN: ',
+    expiry_label: 'Validade preenchida',
+    lookup_searching: 'Buscando na base de medicamentos…',
+    lookup_found: '✅ Encontrado: ',
+    lookup_notfound: '📋 Código escaneado – digite o nome manualmente',
+    categories: {
+      'Analgésique': 'Analgésico', 'Antibiotique': 'Antibiótico',
+      'Anti-inflammatoire': 'Anti-inflamatório', 'Antihistaminique': 'Anti-histamínico',
+      'Cardiovasculaire': 'Cardiovascular', 'Digestif': 'Digestivo',
+      'Dermatologie': 'Dermatologia', 'Ophtalmologie': 'Oftalmologia',
+      'ORL': 'ORL', 'Vitamines': 'Vitaminas', 'Autre': 'Outro'
+    },
+    units: ['comprimidos','cápsulas','ampolas','sachês','ml','doses','caixas']
+  }
+};
+
+var currentLang = 'fr';
+try {
+  const saved = localStorage.getItem('medisafe_lang');
+  if (saved && TRANSLATIONS[saved]) {
+    currentLang = saved;
+  } else {
+    const nav = (navigator.language || navigator.userLanguage || 'fr').toLowerCase();
+    if (nav.startsWith('pt')) currentLang = 'pt';
+    else if (nav.startsWith('fr')) currentLang = 'fr';
+    else currentLang = 'en';
+  }
+} catch(e) { currentLang = 'fr'; }
+
+const LANG_CYCLE = ['fr','en','pt'];
+const LANG_FLAGS = { fr: '🇫🇷', en: '🇬🇧', pt: '🇧🇷' };
+
+function t(key) {
+  return (TRANSLATIONS[currentLang] || TRANSLATIONS.fr)[key] || (TRANSLATIONS.fr[key]) || key;
+}
+
+function toggleLang() {
+  const idx = LANG_CYCLE.indexOf(currentLang);
+  currentLang = LANG_CYCLE[(idx + 1) % LANG_CYCLE.length];
+  try { localStorage.setItem('medisafe_lang', currentLang); } catch(e) {}
+  document.getElementById('btn-lang').textContent = LANG_FLAGS[currentLang];
+  applyTranslations();
+  renderCategoryPills();
+  renderMeds();
+  if (document.getElementById('page-stats').classList.contains('active')) renderStats();
+}
+
+function applyTranslations() {
+  const lang = currentLang;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) el.textContent = TRANSLATIONS[lang][key];
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) el.placeholder = TRANSLATIONS[lang][key];
+  });
+  document.documentElement.lang = lang === 'pt' ? 'pt-BR' : lang;
+  const curCat = document.getElementById('f-category')?.value;
+  if (curCat) populateCategorySelect(curCat);
+  const sl = document.getElementById('scanner-label');
+  if (sl) sl.textContent = t('scanner_hint');
+  document.getElementById('btn-lang').textContent = LANG_FLAGS[currentLang];
+}
+
+// ── DATA ──────────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'medisafe_v1';
+let meds = [];
+try { meds = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { meds = []; }
+let editId = null;
+let detailId = null;
+let scanCallback = null;
+let codeReader = null;
+let activeCategory = 'Tous';
+
+const CATEGORY_EMOJI = {
+  'Analgésique': '🔴', 'Antibiotique': '💊', 'Anti-inflammatoire': '🟠',
+  'Antihistaminique': '🤧', 'Cardiovasculaire': '❤️', 'Digestif': '🟢',
+  'Dermatologie': '🧴', 'Ophtalmologie': '👁️', 'ORL': '👂',
+  'Vitamines': '🌟', 'Autre': '💙'
+};
+
+function save() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(meds)); } catch(e) { console.warn('Storage error:', e); } }
+
+// ── UTILS ─────────────────────────────────────────────────────────────────
+function getDaysToExpiry(expiryYearMonth) {
+  if (!expiryYearMonth) return 9999;
+  const [y, m] = expiryYearMonth.split('-').map(Number);
+  const exp = new Date(y, m, 0);
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  return Math.floor((exp - today) / 86400000);
+}
+
+function formatExpiry(expiryYearMonth) {
+  if (!expiryYearMonth) return '—';
+  const [y, m] = expiryYearMonth.split('-');
+  return `${m}/${y}`;
+}
+
+function expiryBadge(days) {
+  if (days < 0) return `<span class="badge badge-expired">${t('badge_expired')}</span>`;
+  if (days <= 90) return `<span class="badge badge-urgent">J-${days}</span>`;
+  return `<span class="badge badge-ok">J-${days}</span>`;
+}
+
+function getBadgeClass(days, qty, minQty) {
+  if (days < 0) return 'expired';
+  if (days <= 30) return 'urgent';
+  if (qty !== '' && minQty !== '' && Number(qty) <= Number(minQty)) return 'low-stock';
+  return '';
+}
+
+function uniqueId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
+
+function toast(msg, dur) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur || 3000);
+}
+
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('page-' + name).classList.add('active');
+  if (name === 'stats') renderStats();
+}
+
+function populateCategorySelect(selected) {
+  const cats = Object.keys(CATEGORY_EMOJI);
+  const sel = document.getElementById('f-category');
+  if (!sel) return;
+  sel.innerHTML = cats.map(c => `<option value="${c}" ${c === selected ? 'selected' : ''}>${t('categories')[c] || c}</option>`).join('');
+}
+
+function openSettings() { document.getElementById('settings-overlay').classList.add('open'); renderSettings(); }
+function closeSettings(e) { if (e && e.target !== document.getElementById('settings-overlay')) return; document.getElementById('settings-overlay').classList.remove('open'); }
+
+// ── RENDER MEDS ───────────────────────────────────────────────────────────
+function renderCategoryPills() {
+  const cats = ['Tous', ...new Set(meds.map(m => m.category).filter(Boolean))];
+  const el = document.getElementById('cat-pills');
+  const allLabel = currentLang === 'pt' ? 'Todos' : (currentLang === 'fr' ? 'Tous' : 'All');
+  el.innerHTML = cats.map(c => `
+    <div class="cat-pill ${c === activeCategory ? 'active' : ''}" onclick="filterCategory('${c}')">${c === 'Tous' ? allLabel : (t('categories')[c] || c)}</div>
+  `).join('');
+}
+
+function filterCategory(cat) {
+  activeCategory = cat;
+  renderCategoryPills();
+  renderMeds();
+}
+
+function renderMeds() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  let list = meds.filter(m => {
+    const matchSearch = !q || m.name.toLowerCase().includes(q) || (m.barcode || '').includes(q);
+    const matchCat = activeCategory === 'Tous' || m.category === activeCategory;
+    return matchSearch && matchCat;
+  });
+  list.sort((a, b) => getDaysToExpiry(a.expiry) - getDaysToExpiry(b.expiry));
+
+  const el = document.getElementById('med-list');
+  if (!list.length) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">💊</div>
+      <div class="empty-title">${meds.length ? t('no_results') : t('empty_title')}</div>
+      <div class="empty-sub">${meds.length ? t('no_results_sub') : t('empty_sub')}</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = list.map(m => {
+    const days = getDaysToExpiry(m.expiry);
+    const cls = getBadgeClass(days, m.qty, m.minqty);
+    return `<div class="med-card ${cls}" onclick="openDetail('${m.id}')">
+      <div class="med-emoji">${CATEGORY_EMOJI[m.category] || '💊'}</div>
+      <div class="med-info">
+        <div class="med-name">${m.name}</div>
+        <div class="med-detail">${m.dosage ? m.dosage + ' · ' : ''}${t('categories')[m.category] || m.category || ''}</div>
+      </div>
+      <div class="med-meta">
+        ${expiryBadge(days)}
+        <div class="med-qty">${m.qty !== '' ? m.qty + ' ' + (m.unit || '') : t('qty_none')}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  updateAlertBanner();
+  updateHeaderSub();
+}
+
+function updateHeaderSub() {
+  const expired = meds.filter(m => getDaysToExpiry(m.expiry) < 0).length;
+  const urgent = meds.filter(m => { const d = getDaysToExpiry(m.expiry); return d >= 0 && d <= 30; }).length;
+  let medWord = currentLang === 'fr' ? 'médicament' + (meds.length !== 1 ? 's' : '') :
+                currentLang === 'pt' ? 'medicamento' + (meds.length !== 1 ? 's' : '') :
+                'medicine' + (meds.length !== 1 ? 's' : '');
+  let sub = `${meds.length} ${medWord}`;
+  if (expired) sub += ` · ${expired} ${t('alert_expired')}${expired !== 1 && currentLang==='fr' ? 's' : ''}`;
+  if (urgent) sub += ` · ${urgent} ${t('alert_expiring')}`;
+  document.getElementById('header-sub').textContent = sub;
+}
+
+function updateAlertBanner() {
+  const banner = document.getElementById('alert-banner');
+  const items = document.getElementById('alert-items');
+  const expired = meds.filter(m => getDaysToExpiry(m.expiry) < 0);
+  const urgent = meds.filter(m => { const d = getDaysToExpiry(m.expiry); return d >= 0 && d <= 30; });
+  const lowStock = meds.filter(m => m.qty !== '' && m.minqty !== '' && Number(m.qty) <= Number(m.minqty));
+
+  const chips = [];
+  if (expired.length) chips.push(`❌ ${expired.length} ${t('alert_expired')}${expired.length > 1 && currentLang==='fr' ? 's' : ''}`);
+  if (urgent.length) chips.push(`⏰ ${urgent.length} ${urgent.length > 1 ? t('alert_expiring_pl') : t('alert_expiring')}`);
+  if (lowStock.length) chips.push(`📦 ${lowStock.length} ${t('alert_lowstock')}`);
+
+  if (chips.length) {
+    items.innerHTML = chips.map(c => `<div class="alert-chip">${c}</div>`).join('');
+    banner.classList.add('show');
+  } else {
+    banner.classList.remove('show');
+  }
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────────
+function renderStats() {
+  const total = meds.length;
+  const expired = meds.filter(m => getDaysToExpiry(m.expiry) < 0).length;
+  const expiring = meds.filter(m => { const d = getDaysToExpiry(m.expiry); return d >= 0 && d <= 30; }).length;
+  const lowStock = meds.filter(m => m.qty !== '' && m.minqty !== '' && Number(m.qty) <= Number(m.minqty)).length;
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-label">${t('stats_total')}</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--red)">${expired}</div><div class="stat-label">${t('stats_expired')}</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--orange)">${expiring}</div><div class="stat-label">${t('stats_expiring')}</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--accent2)">${lowStock}</div><div class="stat-label">${t('stats_lowstock')}</div></div>
+  `;
+
+  const expiringList = meds.filter(m => { const d = getDaysToExpiry(m.expiry); return d >= 0 && d <= 90; })
+    .sort((a,b) => getDaysToExpiry(a.expiry) - getDaysToExpiry(b.expiry)).slice(0, 5);
+  const expiringEl = document.getElementById('stats-expiring');
+  expiringEl.innerHTML = expiringList.length ? expiringList.map(m => {
+    const days = getDaysToExpiry(m.expiry);
+    return `<div class="med-card urgent" onclick="openDetail('${m.id}')">
+      <div class="med-emoji">${CATEGORY_EMOJI[m.category] || '💊'}</div>
+      <div class="med-info"><div class="med-name">${m.name}</div><div class="med-detail">${formatExpiry(m.expiry)}</div></div>
+      <div class="med-meta">${expiryBadge(days)}</div>
+    </div>`;
+  }).join('') : `<div style="color:var(--text3);font-size:0.85rem;padding:8px 0">${t('no_expiry_soon')}</div>`;
+
+  const lowStockList = meds.filter(m => m.qty !== '' && m.minqty !== '' && Number(m.qty) <= Number(m.minqty)).slice(0, 5);
+  const lowStockEl = document.getElementById('stats-lowstock');
+  lowStockEl.innerHTML = lowStockList.length ? lowStockList.map(m => {
+    return `<div class="med-card low-stock" onclick="openDetail('${m.id}')">
+      <div class="med-emoji">${CATEGORY_EMOJI[m.category] || '💊'}</div>
+      <div class="med-info"><div class="med-name">${m.name}</div><div class="med-detail">${m.qty} ${m.unit} ${t('qty_remaining')}</div></div>
+      <div class="med-meta"><span class="badge" style="background:var(--accent-light);color:var(--accent)">${t('stock_low_badge')}</span></div>
+    </div>`;
+  }).join('') : `<div style="color:var(--text3);font-size:0.85rem;padding:8px 0">${t('all_stock_ok')}</div>`;
+}
+
+// ── ADD / EDIT MODAL ──────────────────────────────────────────────────────
+function openAddModal() {
+  editId = null;
+  document.getElementById('modal-title').textContent = t('add_title');
+  document.getElementById('btn-save').textContent = t('save');
+  populateCategorySelect('Analgésique');
+  ['name','barcode','dosage','qty','minqty','notes'].forEach(f => document.getElementById('f-'+f).value = '');
+  document.getElementById('f-expiry').value = '';
+  document.getElementById('lookup-spinner').classList.remove('show');
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function openEditModal(id) {
+  const m = meds.find(x => x.id === id);
+  if (!m) return;
+  editId = id;
+  document.getElementById('modal-title').textContent = t('edit_title');
+  document.getElementById('btn-save').textContent = t('save');
+  document.getElementById('f-name').value = m.name || '';
+  document.getElementById('f-barcode').value = m.barcode || '';
+  document.getElementById('f-dosage').value = m.dosage || '';
+  populateCategorySelect(m.category || 'Autre');
+  document.getElementById('f-expiry').value = m.expiry || '';
+  document.getElementById('f-qty').value = m.qty !== undefined ? m.qty : '';
+  document.getElementById('f-unit').value = m.unit || 'comprimés';
+  document.getElementById('f-minqty').value = m.minqty !== undefined ? m.minqty : '';
+  document.getElementById('f-notes').value = m.notes || '';
+  document.getElementById('lookup-spinner').classList.remove('show');
+  document.getElementById('detail-overlay').classList.remove('open');
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal(event) {
+  if (event && event.target !== document.getElementById('modal-overlay')) return;
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function saveMed() {
+  const name = document.getElementById('f-name').value.trim();
+  const expiry = document.getElementById('f-expiry').value;
+  if (!name) { toast(t('name_required')); return; }
+  if (!expiry) { toast(t('expiry_required')); return; }
+
+  const obj = {
+    id: editId || uniqueId(),
+    name,
+    barcode: document.getElementById('f-barcode').value.trim(),
+    dosage: document.getElementById('f-dosage').value.trim(),
+    category: document.getElementById('f-category').value,
+    expiry,
+    qty: document.getElementById('f-qty').value,
+    unit: document.getElementById('f-unit').value,
+    minqty: document.getElementById('f-minqty').value,
+    notes: document.getElementById('f-notes').value.trim(),
+    addedAt: editId ? (meds.find(x => x.id === editId).addedAt) : new Date().toISOString()
+  };
+
+  if (editId) {
+    const idx = meds.findIndex(x => x.id === editId);
+    meds[idx] = obj;
+    toast(t('modified_toast'));
+  } else {
+    meds.push(obj);
+    toast(t('added_toast'));
+  }
+
+  save();
+  document.getElementById('modal-overlay').classList.remove('open');
+  renderCategoryPills();
+  renderMeds();
+}
+
+// ── DETAIL MODAL ──────────────────────────────────────────────────────────
+function openDetail(id) {
+  const m = meds.find(x => x.id === id);
+  if (!m) return;
+  detailId = id;
+  const days = getDaysToExpiry(m.expiry);
+
+  document.getElementById('d-emoji').textContent = CATEGORY_EMOJI[m.category] || '💊';
+  document.getElementById('d-name').textContent = m.name;
+  document.getElementById('d-dosage').textContent = [m.dosage, t('categories')[m.category] || m.category].filter(Boolean).join(' · ');
+  document.getElementById('d-cat').textContent = (m.category && t('categories')[m.category]) || m.category || '—';
+  document.getElementById('d-barcode').textContent = m.barcode || '—';
+  document.getElementById('d-notes').textContent = m.notes || '—';
+  document.getElementById('d-qty').textContent = m.qty !== '' ? m.qty : '—';
+  document.getElementById('d-unit').textContent = m.unit || '';
+
+  let expiryTxt = formatExpiry(m.expiry);
+  if (days < 0) expiryTxt += ' 🔴';
+  else if (days <= 30) expiryTxt += ` ⚠️ J-${days}`;
+  document.getElementById('d-expiry').textContent = expiryTxt;
+  document.getElementById('detail-overlay').classList.add('open');
+}
+
+function closeDetail(event) {
+  if (event && event.target !== document.getElementById('detail-overlay')) return;
+  document.getElementById('detail-overlay').classList.remove('open');
+}
+
+function adjustQty(delta) {
+  const m = meds.find(x => x.id === detailId);
+  if (!m) return;
+  const cur = Number(m.qty) || 0;
+  m.qty = Math.max(0, cur + delta).toString();
+  document.getElementById('d-qty').textContent = m.qty;
+  save();
+  renderMeds();
+}
+
+function deleteMed() {
+  if (!confirm(t('delete_confirm'))) return;
+  meds = meds.filter(x => x.id !== detailId);
+  save();
+  document.getElementById('detail-overlay').classList.remove('open');
+  toast(t('deleted_toast'));
+  renderCategoryPills();
+  renderMeds();
+}
+
+function editMed() { openEditModal(detailId); }
+
+// ── SCANNER ───────────────────────────────────────────────────────────────
+let scanStream = null;
+
+async function startScanner(callback) {
+  scanCallback = callback || null;
+  document.getElementById('scanner-overlay').classList.add('open');
+  document.getElementById('scanner-result').textContent = '';
+
+  try {
+    if (typeof ZXing === 'undefined') {
+      toast('⏳ Chargement du scanner...');
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      if (typeof ZXing === 'undefined') {
+        toast(t('cam_unavailable'));
+        stopScanner();
+        return;
+      }
+    }
+    codeReader = new ZXing.BrowserMultiFormatReader();
+    const devices = await codeReader.listVideoInputDevices();
+    const deviceId = devices.length > 1 ? devices[1].deviceId : (devices[0] ? devices[0].deviceId : undefined);
+
+    await codeReader.decodeFromVideoDevice(deviceId, 'scanner-video', (result, err) => {
+      if (result) {
+        const code = result.getText();
+        document.getElementById('scanner-result').textContent = '✅ ' + code;
+        handleScanResult(code);
+      }
+    });
+  } catch(e) {
+    toast(t('cam_denied'));
+    stopScanner();
+  }
+}
+
+function stopScanner() {
+  if (codeReader) {
+    try { codeReader.reset(); } catch(e){}
+    codeReader = null;
+  }
+  document.getElementById('scanner-overlay').classList.remove('open');
+}
+
+// ── GS1 DataMatrix Parser ─────────────────────────────────────────────────
+function parseGS1(raw) {
+  const result = { gtin: null, expiry: null, lot: null, serial: null, ean13: null, raw };
+  if (!raw.startsWith('01') || raw.length < 16) {
+    result.ean13 = raw;
+    return result;
+  }
+  result.gtin = raw.substring(2, 16);
+  result.ean13 = result.gtin.startsWith('0') ? result.gtin.substring(1) : result.gtin;
+
+  let pos = 16;
+  while (pos < raw.length - 1) {
+    const ai2 = raw.substring(pos, pos + 2);
+    if (ai2 === '17') {
+      const d = raw.substring(pos + 2, pos + 8);
+      if (/^\d{6}$/.test(d)) {
+        const yy = d.substring(0, 2);
+        const mm = d.substring(2, 4);
+        result.expiry = `${2000 + parseInt(yy)}-${mm}`;
+      }
+      pos += 8; continue;
+    }
+    if (ai2 === '10') {
+      pos += 2; let val = '';
+      while (pos < raw.length) {
+        if (['17','21','01','11','13','15'].includes(raw.substring(pos, pos + 2))) break;
+        val += raw[pos++];
+      }
+      result.lot = val || null; continue;
+    }
+    if (ai2 === '21') {
+      pos += 2; let val = '';
+      while (pos < raw.length) {
+        if (['17','10','01','11','13','15'].includes(raw.substring(pos, pos + 2))) break;
+        val += raw[pos++];
+      }
+      result.serial = val || null; continue;
+    }
+    pos++;
+  }
+  return result;
+}
+
+// URL QR Code Parser
+function parseUrlQR(raw) {
+  if (!raw.startsWith('http')) return null;
+  try {
+    const url = new URL(raw);
+    const parts = url.pathname.replace(/\/$/, '').split('/');
+    const slug = parts[parts.length - 1];
+    const stopWords = ['et','ou','les','des','ses','une','pour','sur','dans'];
+    const tokens = slug.split('-');
+    let nameTokens = [];
+    let foundDose = false;
+    for (let i = 0; i < tokens.length; i++) {
+      const tk = tokens[i];
+      if (/^\d+$/.test(tk) || /^(mg|ml|ui|iu|g|mcg)$/i.test(tk)) foundDose = true;
+      if (foundDose && stopWords.includes(tk.toLowerCase())) break;
+      nameTokens.push(tk);
+    }
+    const name = nameTokens.join(' ');
+    const pretty = name.charAt(0).toUpperCase() + name.slice(1);
+    const doseMatch = pretty.match(/(\d+(?:[.,]\d+)?\s*(?:mg|ml|mcg|UI|g|%))/i);
+    return { name: pretty, dosage: doseMatch ? doseMatch[1] : '', sourceUrl: raw };
+  } catch(e) { return null; }
+}
+
+function handleScanResult(code) {
+  stopScanner();
+
+  // Case 1: URL QR code
+  const urlInfo = parseUrlQR(code);
+  if (urlInfo) {
+    openAddModal();
+    document.getElementById('f-name').value = urlInfo.name;
+    if (urlInfo.dosage) document.getElementById('f-dosage').value = urlInfo.dosage;
+    document.getElementById('f-notes').value = t('source_label') + urlInfo.sourceUrl;
+    toast('✅ ' + urlInfo.name);
+    scanCallback = null;
+    return;
+  }
+
+  // Case 2: GS1 DataMatrix or plain barcode
+  const gs1 = parseGS1(code);
+  const displayCode = gs1.ean13 || code;
+
+  if (scanCallback === 'name') {
+    document.getElementById('f-barcode').value = displayCode;
+    if (gs1.expiry) document.getElementById('f-expiry').value = gs1.expiry;
+    if (gs1.lot) {
+      const cur = document.getElementById('f-notes').value;
+      if (!cur) document.getElementById('f-notes').value = t('lot_label') + gs1.lot;
+    }
+    showLookupSpinner(true);
+    lookupMed(displayCode).then(info => {
+      showLookupSpinner(false);
+      if (info && info.name) {
+        document.getElementById('f-name').value = info.name;
+        if (info.dosage) document.getElementById('f-dosage').value = info.dosage;
+        toast(t('identified') + info.name + (gs1.expiry ? t('date_filled') : ''), 4000);
+      } else {
+        toast(t('lookup_notfound') + (gs1.expiry ? ' · ' + formatExpiry(gs1.expiry) : ''), 4000);
+      }
+    });
+  } else {
+    openAddModal();
+    document.getElementById('f-barcode').value = displayCode;
+    if (gs1.expiry) document.getElementById('f-expiry').value = gs1.expiry;
+    if (gs1.lot) document.getElementById('f-notes').value = t('lot_label') + gs1.lot;
+    showLookupSpinner(true);
+    lookupMed(displayCode).then(info => {
+      showLookupSpinner(false);
+      if (info && info.name) {
+        document.getElementById('f-name').value = info.name;
+        if (info.dosage) document.getElementById('f-dosage').value = info.dosage;
+        toast(t('identified') + info.name + (gs1.expiry ? t('date_filled') + ' 🎉' : ''), 4000);
+      } else {
+        toast(t('lookup_notfound') + (gs1.expiry ? ' · ' + formatExpiry(gs1.expiry) : ''), 4000);
+      }
+    });
+  }
+  scanCallback = null;
+}
+
+function showLookupSpinner(show) {
+  const el = document.getElementById('lookup-spinner');
+  if (el) el.classList.toggle('show', show);
+}
+
+function startScannerForField(field) { startScanner(field); }
+
+// ── LOOKUP MÉDICAMENTS — VERSION CAPACITOR ────────────────────────────────
+// Utilise CapacitorHttp si disponible (Capacitor), sinon fetch standard
+async function httpGet(url) {
+  try {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp) {
+      const r = await window.Capacitor.Plugins.CapacitorHttp.get({ url });
+      if (r && r.data) return typeof r.data === 'string' ? r.data : JSON.stringify(r.data);
+    }
+  } catch(e) {}
+  // fallback fetch
+  const r = await fetch(url);
+  return await r.text();
+}
+
+async function lookupMed(ean) {
+  // ─ 1. Open Medicine Facts (base médicaments mondiale, meilleure couverture) ─
+  try {
+    const text = await httpGet(`https://world.openmedicalfacts.org/api/v0/product/${ean}.json`);
+    const d = JSON.parse(text);
+    if (d.status === 1 && d.product) {
+      const name = d.product.product_name_fr || d.product.product_name || d.product.generic_name_fr || d.product.generic_name || '';
+      const dosage = d.product.dosage || d.product.quantity || '';
+      if (name) return { name: name.trim(), dosage: dosage.trim() };
+    }
+  } catch(e) {}
+
+  // ─ 2. Open Food Facts (couvre aussi les parapharmacies / vitamines) ─
+  try {
+    const text = await httpGet(`https://world.openfoodfacts.org/api/v0/product/${ean}.json`);
+    const d = JSON.parse(text);
+    if (d.status === 1 && d.product) {
+      const name = d.product.product_name_fr || d.product.product_name || '';
+      if (name) return { name: name.trim() };
+    }
+  } catch(e) {}
+
+  // ─ 3. Open Beauty Facts (cosmétiques/dermatologie) ─
+  try {
+    const text = await httpGet(`https://world.openbeautyfacts.org/api/v0/product/${ean}.json`);
+    const d = JSON.parse(text);
+    if (d.status === 1 && d.product) {
+      const name = d.product.product_name_fr || d.product.product_name || '';
+      if (name) return { name: name.trim() };
+    }
+  } catch(e) {}
+
+  // ─ 4. UPC Item DB (base internationale EAN/UPC) ─
+  try {
+    const text = await httpGet(`https://api.upcitemdb.com/prod/trial/lookup?upc=${ean}`);
+    const d = JSON.parse(text);
+    if (d.code === 'OK' && d.items && d.items[0]) {
+      const item = d.items[0];
+      const name = item.title || '';
+      if (name) return { name: name.trim() };
+    }
+  } catch(e) {}
+
+  return null;
+}
+
+// ── IMPORT / EXPORT ───────────────────────────────────────────────────────
+function exportCSV() {
+  const headers = ['id','name','barcode','dosage','category','expiry','qty','unit','minqty','notes','addedAt'];
+  const rows = meds.map(m => headers.map(h => {
+    const v = String(m[h] || '');
+    return v.includes(',') || v.includes('"') || v.includes('\n') ? `"${v.replace(/"/g,'""')}"` : v;
+  }).join(','));
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob(['\ufeff' + csv], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'medisafe_backup.csv'; a.click();
+  URL.revokeObjectURL(url);
+  closeSettings();
+}
+
+function triggerImport() { document.getElementById('import-input').click(); closeSettings(); }
+
+function importCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      let text = e.target.result;
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+      const lines = text.split('\n').filter(l => l.trim());
+      if (lines.length < 2) { toast(t('import_empty')); return; }
+      const headers = lines[0].split(',').map(h => h.trim());
+      const imported = lines.slice(1).map(line => {
+        const vals = parseCSVLine(line);
+        const obj = {};
+        headers.forEach((h, i) => { obj[h] = vals[i] || ''; });
+        if (!obj.id) obj.id = uniqueId();
+        return obj;
+      }).filter(o => o.name);
+      if (!imported.length) { toast(t('import_empty')); return; }
+      if (!confirm(t('import_confirm').replace('{n}', imported.length))) return;
+      meds = imported;
+      save();
+      renderCategoryPills();
+      renderMeds();
+      toast(t('import_success').replace('{n}', imported.length));
+    } catch(err) {
+      toast(t('import_error'));
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let cur = ''; let inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') {
+      if (inQuote && line[i+1] === '"') { cur += '"'; i++; }
+      else inQuote = !inQuote;
+    } else if (c === ',' && !inQuote) {
+      result.push(cur); cur = '';
+    } else { cur += c; }
+  }
+  result.push(cur);
+  return result;
+}
+
+function clearAllData() {
+  if (!confirm(t('clear_confirm'))) return;
+  meds = [];
+  save();
+  renderCategoryPills();
+  renderMeds();
+  toast(t('cleared_toast'));
+}
+
+// ── DEMO DATA ─────────────────────────────────────────────────────────────
+function loadDemo() {
+  if (meds.length > 0) return;
+  const now = new Date();
+  const addMonths = (n) => {
+    const d = new Date(now);
+    d.setMonth(d.getMonth() + n);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  };
+  meds = [
+    { id: uniqueId(), name: 'Doliprane 1000mg', barcode: '3400936093138', dosage: '1000mg', category: 'Analgésique', expiry: addMonths(14), qty: '16', unit: 'comprimés', minqty: '4', notes: '', addedAt: now.toISOString() },
+    { id: uniqueId(), name: 'Ibuprofène 400mg', barcode: '3400937098286', dosage: '400mg', category: 'Anti-inflammatoire', expiry: addMonths(2), qty: '8', unit: 'comprimés', minqty: '4', notes: 'Prendre avec de l\'eau', addedAt: now.toISOString() },
+    { id: uniqueId(), name: 'Amoxicilline 500mg', barcode: '3400925963617', dosage: '500mg', category: 'Antibiotique', expiry: addMonths(-2), qty: '6', unit: 'gélules', minqty: '0', notes: 'Ordonnance requise', addedAt: now.toISOString() },
+    { id: uniqueId(), name: 'Vitamine D3 1000UI', barcode: '3760128390045', dosage: '1000UI', category: 'Vitamines', expiry: addMonths(18), qty: '60', unit: 'comprimés', minqty: '10', notes: '', addedAt: now.toISOString() },
+    { id: uniqueId(), name: 'Loratadine 10mg', barcode: '3400936540107', dosage: '10mg', category: 'Antihistaminique', expiry: addMonths(6), qty: '7', unit: 'comprimés', minqty: '5', notes: 'Allergie saisonnière', addedAt: now.toISOString() },
+  ];
+  save();
+}
+
+// ── SETTINGS PANEL AVEC TOUTES LES APPS ──────────────────────────────────
+const ALL_APPS = [
+  {id:'6763507194',name:'Hotels RoofTop'},{id:'6762618424',name:'Ponts du Monde'},
+  {id:'6763076110',name:'Paquebots Liners'},{id:'6763069304',name:'Avions de Legende'},
+  {id:'6763071567',name:'Voitures de Legende'},{id:'6762077646',name:'Flip Board'},
+  {id:'6762632868',name:'Trains Mythiques'},{id:'6762823383',name:'Chateaux Loire'},
+  {id:'6762598304',name:'Mers & Oceans'},{id:'6762594201',name:'Detroits'},
+  {id:'6762558969',name:'ColorCode Mind'},{id:'6762552826',name:'Lexigo'},
+  {id:'6762542395',name:'Conquetes Sociales'},{id:'6762522136',name:'Dynasties Chinoises'},
+  {id:'6762452564',name:'Dynasties Russes'},{id:'6762370541',name:'Etats-Unis'},
+  {id:'6762091681',name:'Bataille Navale'},{id:'6762098486',name:'Familles Royales'},
+  {id:'6762263227',name:'Leaders Europeens'},{id:'6762346365',name:'Pays UE'},
+  {id:'6762256169',name:'Presidents Americains'},{id:'6762076518',name:'Dames Checkers'},
+  {id:'6761993002',name:'Comedie Francaise'},{id:'6761769529',name:'Institut de France'},
+  {id:'6761324444',name:'Presidents Francais'},{id:'6761709149',name:'Basilique St-Denis'},
+  {id:'6761685637',name:'Arbres de France'},{id:'6761363063',name:'Senat Paris'},
+  {id:'6761656628',name:'Compositeurs'},{id:'6761374601',name:'Marechaux Napoleon'},
+  {id:'6761322546',name:'Rois de France'},{id:'6761361079',name:'Assemblee Paris'},
+  {id:'6761335268',name:'Pantheon Paris'},{id:'1483084001',name:'Belote Calc'},
+  {id:'6760751055',name:'Cimetieres Paris'},{id:'1481989301',name:'Tarots Calc'},
+  {id:'6761334922',name:'Academie francaise'},{id:'6761293938',name:'Scenes Paris'},
+  {id:'6761271324',name:'MediSafe'},{id:'6760617965',name:'MesRestaurants'},
+  {id:'6760126279',name:'Cave Manager'},{id:'6760890465',name:'Musees Paris'},
+  {id:'6760929391',name:'Theatres Paris'},{id:'6759219383',name:'FreshFood Manager'},
+  {id:'1475884625',name:'Toi ou Moi'},{id:'6761421276',name:'Capitales Europe'},
+  {id:'6762006105',name:'Iconic Covers'},{id:'6767135193',name:'Auteurs de BD'},
+  {id:'6766260978',name:'Histoire Info'},{id:'6766261703',name:'Micro-Info'},
+  {id:'6767492967',name:'Institutions Mondiales'},{id:'6767273597',name:'Machines Leg.'},
+  {id:'6767810270',name:'Iles du Monde'},{id:'6768003416',name:'Explorateurs'},
+  {id:'6768068634',name:'Peintres Celebres'},{id:'6768320574',name:'Legion Honneur'},
+  {id:'6762208827',name:'Dynasties Royales'},{id:'6764087562',name:'Aeroports Mythiques'},
+  {id:'6763569148',name:'Nobels de la Paix'},{id:'6763857843',name:'Gratte-Ciels'},
+  {id:'6769310796',name:'App Solitaire'},{id:'6768574161',name:'Tuiles Numeriques'},
+  {id:'6769653710',name:'Legendes Pop'}
+];
+
+function renderSettings() {
+  const grid = document.getElementById('apps-grid');
+  if (!grid || grid.childElementCount > 0) return;
+  // Exclure MediSafe elle-même (id 6761271324)
+  const others = ALL_APPS.filter(a => a.id !== '6761271324');
+  others.forEach(app => {
+    const item = document.createElement('div');
+    item.className = 'apps-grid-item';
+    item.onclick = () => { window.open('https://apps.apple.com/app/id' + app.id, '_blank'); };
+    const img = document.createElement('img');
+    img.src = '';
+    img.alt = app.name;
+    // JSONP iTunes lookup
+    const cbName = 'itcb' + app.id;
+    window[cbName] = function(d) {
+      if (d.results && d.results[0]) img.src = d.results[0].artworkUrl60;
+    };
+    const s = document.createElement('script');
+    s.src = 'https://itunes.apple.com/lookup?id=' + app.id + '&callback=' + cbName;
+    document.body.appendChild(s);
+    const lbl = document.createElement('span');
+    lbl.textContent = app.name;
+    item.appendChild(img);
+    item.appendChild(lbl);
+    grid.appendChild(item);
+  });
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+function init() {
+  try {
+    loadDemo();
+    applyTranslations();
+    renderCategoryPills();
+    renderMeds();
+  } catch(e) {
+    console.error('[MediSafe] Init error:', e.message, e.stack);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+
+<!-- MODAL PARAMÈTRES -->
+<div class="modal-overlay" id="settings-overlay" onclick="closeSettings(event)">
+  <div class="modal" id="settings-modal">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 20px;margin-bottom:20px">
+      <div class="modal-title" style="padding:0;margin:0" data-i18n="settings_title">⚙️ Paramètres</div>
+      <button onclick="document.getElementById('settings-overlay').classList.remove('open')" style="width:32px;height:32px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
+    </div>
+
+    <div class="form-group" style="margin-bottom:8px">
+      <div class="settings-section-label" data-i18n="section_export">Import / Export</div>
+    </div>
+    <div class="settings-card" style="margin:0 20px 20px">
+      <div class="settings-row" onclick="exportCSV()">
+        <div class="settings-icon">⬆️</div>
+        <div class="settings-info">
+          <div class="settings-label" data-i18n="export_label">Exporter en CSV</div>
+          <div class="settings-sub" data-i18n="export_sub">Partager ou sauvegarder vos médicaments</div>
+        </div>
+        <div class="settings-arrow">›</div>
+      </div>
+      <div class="apropos-divider"></div>
+      <div class="settings-row" onclick="triggerImport()">
+        <div class="settings-icon">⬇️</div>
+        <div class="settings-info">
+          <div class="settings-label" data-i18n="import_label">Importer un CSV</div>
+          <div class="settings-sub" data-i18n="import_sub">Restaurer une sauvegarde existante</div>
+        </div>
+        <div class="settings-arrow">›</div>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:8px">
+      <div class="settings-section-label" data-i18n="section_data">Données</div>
+    </div>
+    <div class="settings-card" style="margin:0 20px 20px">
+      <div class="settings-row" onclick="clearAllData()">
+        <div class="settings-icon">🗑</div>
+        <div class="settings-info">
+          <div class="settings-label" style="color:var(--red)" data-i18n="clear_label">Effacer toutes les données</div>
+          <div class="settings-sub" data-i18n="clear_sub">Remet l'application à zéro</div>
+        </div>
+        <div class="settings-arrow">›</div>
+      </div>
+    </div>
+
+    <!-- TOUTES NOS APPS -->
+    <div class="apps-section">
+      <div class="apps-section-title" data-i18n="section_apps">📱 Nos autres apps</div>
+      <div class="apps-grid" id="apps-grid"></div>
+      <a href="https://apps.apple.com/developer/michel-garlandat/id368771203" target="_blank">
+        <img class="apps-badge" src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/fr-fr" alt="App Store">
+      </a>
+    </div>
+
+    <div class="form-group" style="margin-bottom:8px">
+      <div class="settings-section-label" data-i18n="section_about">À propos</div>
+    </div>
+    <div class="settings-card" style="margin:0 20px 24px">
+      <div style="padding:20px 16px;text-align:center">
+        <div style="font-size:2.8rem;margin-bottom:8px">💊</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:1.3rem">MediSafe</div>
+        <div style="font-size:0.75rem;color:var(--text3);margin-top:4px" data-i18n="version">Version 1.3</div>
+        <div style="font-size:0.75rem;color:var(--text3)" data-i18n="by_author">© 2026 Michel Garlandat</div>
+      </div>
+      <div class="apropos-divider"></div>
+      <div class="settings-row" style="cursor:default">
+        <div class="settings-icon">🔒</div>
+        <div class="settings-info">
+          <div class="settings-label" data-i18n="about_private">100% privé</div>
+          <div class="settings-sub" data-i18n="about_private_sub">Données stockées uniquement sur votre appareil</div>
+        </div>
+      </div>
+      <div class="apropos-divider"></div>
+      <div class="settings-row" style="cursor:default">
+        <div class="settings-icon">📡</div>
+        <div class="settings-info">
+          <div class="settings-label" data-i18n="about_offline">Fonctionne hors ligne</div>
+          <div class="settings-sub" data-i18n="about_offline_sub">Aucune connexion requise</div>
+        </div>
+      </div>
+      <div class="apropos-divider"></div>
+      <div class="settings-row" style="cursor:default">
+        <div class="settings-icon">🌍</div>
+        <div class="settings-info">
+          <div class="settings-label" data-i18n="about_codes">Codes supportés</div>
+          <div class="settings-sub" data-i18n="about_codes_sub">DataMatrix GS1 · QR ANSM/VIDAL · EAN-13</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

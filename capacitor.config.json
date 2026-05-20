@@ -1,13 +1,20 @@
 {
-  "appId": "com.garlandat.medisafe",
+  "appId": "com.michel.garlandat.medisafe",
   "appName": "MediSafe",
-  "webDir": "www",
-  "server": {
-    "androidScheme": "https"
-  },
+  "webDir": "App/public",
+  "bundledWebRuntime": false,
+  "backgroundColor": "#070510",
   "ios": {
-    "contentInset": "never",
-    "scrollEnabled": false,
-    "backgroundColor": "#f5f0eb"
+    "backgroundColor": "#070510",
+    "contentInset": "automatic",
+    "scrollEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    },
+    "CapacitorHttp": {
+      "enabled": true
+    }
   }
 }

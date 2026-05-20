@@ -1,17 +1,15 @@
 {
-  "name": "medisafe",
+  "name": "MediSafe",
   "version": "1.0.0",
-  "description": "MediSafe – Gestion de pharmacie personnelle",
+  "description": "MediSafe",
+  "main": "index.js",
   "scripts": {
-    "sync": "./node_modules/.bin/cap sync ios",
-    "open": "./node_modules/.bin/cap open ios",
-    "add-ios": "./node_modules/.bin/cap add ios"
+    "build": "echo 'No build step needed'"
   },
   "dependencies": {
     "@capacitor/core": "^6.0.0",
     "@capacitor/ios": "^6.0.0"
   },
-  "devDependencies": {
-    "@capacitor/cli": "^6.0.0"
-  }
+  "author": "Michel Garlandat",
+  "license": "UNLICENSED"
 }
